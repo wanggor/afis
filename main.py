@@ -27,8 +27,8 @@ class MainWindow(QMainWindow):
 
         self.itemList = {}
         self.start = False
-
-        for i in impro.check_available_camera():
+        for i in range(2):
+        # for i in impro.check_available_camera():
             self.ui.comboBox_camera.addItem("Camera " + str(i+1))
 
     def get_config(self):
@@ -113,10 +113,10 @@ class MainWindow(QMainWindow):
     def addMsgWidget(self, key, value):
         widget = uic.loadUi('list_item.ui')
         widget.number_index.setText(str(key + 1)+ ". ")
-        widget.widget.hide()
+        # widget.widget.hide()
         widget.plainTextEdit.setPlainText(value)
         count = self.ui.listView_msg.count()
-        widget.pushButton_decode.clicked.connect(lambda: self.decode(key))
+        # widget.pushButton_decode.clicked.connect(lambda: self.decode(key))
 
         item =  QListWidgetItem()
         self.ui.listView_msg.insertItem(self.ui.listView_msg.count(), item)
