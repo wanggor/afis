@@ -1,0 +1,13 @@
+
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="ui">
+        <file alias="interface.ui">resources/interface.ui</file>
+        <file alias="list_item.ui">resources/list_item.ui</file>
+    </qresource>
+    <qresource prefix="icons">
+        <file alias="icon.ico">resources/icon.ico</file>
+        <file alias="background.PNG">resources/background.PNG</file>
+    </qresource>
+</RCC>
+
