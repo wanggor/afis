@@ -65,7 +65,8 @@ class Camera_stream(QThread):
 
     def changeReading(self, val):
         self.isReading = val
-        self.tracker.clear()
+        self.tracker = tracker.CentroidTracker(maxDisappeared=30, maxDistance=50)
+        self.msg = Msg(self.const)
         return self.isReading
 
     def run(self):
@@ -93,6 +94,8 @@ class Camera_stream(QThread):
                 
                 if self.isReading:
                     self.data.emit(dataMorse)
+                else:
+                    self.data.emit({})
                     
                 self.changePixmap.emit(p)
                 

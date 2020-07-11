@@ -32,6 +32,7 @@ class MainWindow(QMainWindow):
         self.ui.pushButton_startRead.clicked.connect(self.startRead)
         self.ui.pushButton_saveconst.clicked.connect(self.updateConst)
         self.ui.pushButton_testLampu.clicked.connect(self.testLampu)
+        self.ui.pushButton_clear.clicked.connect(self.clearList)
         self.ui.frame_4.hide()
         # self.ui.frame_color.hide()
         # self.ui.lineEdit_code_send.hide()
@@ -201,32 +202,38 @@ class MainWindow(QMainWindow):
 
     @pyqtSlot(dict)
     def update_data(self,data):
-        keys = sorted(list(data.keys()))
-        for key in keys:
-            textvalue = "".join([ str(i[0]) for i in data[key][:-1]]) + " " + str(data[key][-1]) 
-            if key not in self.itemList.keys():
-                self.itemList[key] = self.addMsgWidget( key ,textvalue)
-                self.encrypeList[key] = {
-                    "code" : ""
-                }
-            else:
-                if self.encrypeList[key]["code"] != "":
-                    textvalue = f'[{self.encrypeList[key]["code"]}] ' + encryption.decode(self.encrypeList[key]["code"], textvalue.lower())
-                self.itemList[key].plainTextEdit.setPlainText(textvalue.upper())
+        if self.isreading:
+            keys = sorted(list(data.keys()))
+            for key in keys:
+                textvalue = "".join([ str(i[0]) for i in data[key][:-1]]) + " " + str(data[key][-1]) 
+                if key not in self.itemList.keys():
+                    self.itemList[key] = self.addMsgWidget( key ,textvalue)
+                    self.encrypeList[key] = {
+                        "code" : ""
+                    }
+                else:
+                    if self.encrypeList[key]["code"] != "":
+                        textvalue = f'[{self.encrypeList[key]["code"]}] ' + encryption.decode(self.encrypeList[key]["code"], textvalue.lower())
+                    self.itemList[key].plainTextEdit.setPlainText(textvalue.upper())
 
     def startRead(self):
         self.isreading = not(self.isreading) 
         if self.camera is not None:
             if self.isreading:
                 self.camera.changeReading(True)
-                self.itemList = {}
-                self.encrypeList = {}
-                self.ui.listView_msg.blockSignals(True)
-                self.ui.listView_msg.clear()
+                # self.itemList = {}
+                # self.encrypeList = {}
+                # self.ui.listView_msg.blockSignals(True)
+                # self.ui.listView_msg.clear()
                 self.ui.pushButton_startRead.setText("Stop Membaca")
             else:
                 self.camera.changeReading(False)
                 self.ui.pushButton_startRead.setText("Mulai Membaca")
+
+    def clearList(self):
+        self.itemList = {}
+        self.encrypeList = {}
+        self.ui.listView_msg.clear()
 
         
 

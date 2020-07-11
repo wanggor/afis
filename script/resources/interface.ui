@@ -765,11 +765,22 @@ background-color: rgba(0, 0, 0, 150);</string>
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="pushButton_startRead">
-            <property name="text">
-             <string>Mulai Membaca</string>
-            </property>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_7">
+            <item>
+             <widget class="QPushButton" name="pushButton_clear">
+              <property name="text">
+               <string>Clear</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_startRead">
+              <property name="text">
+               <string>Mulai Membaca</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
