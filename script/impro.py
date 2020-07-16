@@ -263,7 +263,7 @@ class Msg():
         if value != self.value[index]:
 
             if self.value[index] == 1:
-                # print("one value", self.duration[index])
+                print("one value", self.duration[index])
                 if self.duration[index] > (self.one_tick - self.tolerance) and  self.duration[index] < (self.one_tick + self.tolerance) :
                     self.data[index][-1][-1] += "1"
                 elif self.duration[index] > (self.zero_tick - self.tolerance) and  self.duration[index] < (self.zero_tick + self.tolerance):
