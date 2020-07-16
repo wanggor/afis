@@ -1,3 +1,11 @@
+    # 1 : {
+    #     "zero-tick" : 0.2,
+    #     "one-tick" : 0.7,
+    #     "space-tick" : 0.4,
+    #     "split-tick" : 0.4,
+    #     "tolerance" : 0.15
+    # },
+
 mode_detection = {
     1 : {
         "zero-tick" : 0.5,
@@ -6,6 +14,7 @@ mode_detection = {
         "split-tick" : 0.15,
         "tolerance" : 0.15
     },
+
     2 : {
        "zero-tick" : 0.25,
         "one-tick" : 0.7,

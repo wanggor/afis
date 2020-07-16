@@ -13,6 +13,27 @@ import datetime
 import tracker as tracker
 import constant as constant
 
+def rotate_bound(image, angle):
+    # grab the dimensions of the image and then determine the
+    # center
+    (h, w) = image.shape[:2]
+    (cX, cY) = (w // 2, h // 2)
+    # grab the rotation matrix (applying the negative of the
+    # angle to rotate clockwise), then grab the sine and cosine
+    # (i.e., the rotation components of the matrix)
+    M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
+    cos = np.abs(M[0, 0])
+    sin = np.abs(M[0, 1])
+    # compute the new bounding dimensions of the image
+    nW = int((h * sin) + (w * cos))
+    nH = int((h * cos) + (w * sin))
+    # adjust the rotation matrix to take into account translation
+    M[0, 2] += (nW / 2) - cX
+    M[1, 2] += (nH / 2) - cY
+    # perform the actual rotation and return the image
+    return cv2.warpAffine(image, M, (nW, nH))
+    
+
 def check_available_camera():
     data = []
     for i in range(10):
@@ -29,7 +50,7 @@ def check_available_camera():
 class Camera_stream(QThread):
     changePixmap = pyqtSignal(QImage)
     data = pyqtSignal(dict)
-    def __init__(self, cap = None, parent = None, const = {}):
+    def __init__(self, cap = None, parent = None, const = {}, angle = 0):
         super(Camera_stream, self).__init__(parent)
 
         fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
@@ -47,6 +68,8 @@ class Camera_stream(QThread):
         self.mode = "Tunggal"
         self.isSetting = False
         self.isReading = False
+        self.angle = angle
+
 
     def __del__(self):
         self.quit()
@@ -73,6 +96,7 @@ class Camera_stream(QThread):
         while  not self.stop :
             ret, frame = self.cap.read()
             if ret:
+                frame = rotate_bound(frame, self.angle)
                 frame_bin = self.morse.rgb2bin(frame)
                 data = self.tracker.update([])
                 bbox = self.morse.getContour(frame_bin)
@@ -89,6 +113,7 @@ class Camera_stream(QThread):
 
                 frame = imutils.resize(frame, width=640 , height=480 )
                 rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                
                 convertToQtFormat = QImage(rgbImage.data, rgbImage.shape[1], rgbImage.shape[0], QImage.Format_RGB888)
                 p = convertToQtFormat.scaled(rgbImage.shape[1], rgbImage.shape[0], Qt.KeepAspectRatio)
                 
@@ -244,7 +269,7 @@ class Msg():
                 elif self.duration[index] > (self.zero_tick - self.tolerance) and  self.duration[index] < (self.zero_tick + self.tolerance):
                     self.data[index][-1][-1] += "0"
             else:
-                # print("zero-value", self.duration[index])
+                print("zero-value", self.duration[index])
                 if self.duration[index] > self.split_tick:
                     if len(self.data[index][-1]) > 0:
                         if self.data[index][-1][-1] in self.mors_code.keys():
