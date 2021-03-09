@@ -1,0 +1,3 @@
+pyrcc5 -o resources.py resources.qrc
+
+pyinstaller ESIM.py --name "Esim 1.1"  --add-data "data.csv;." --add-data "data_white.csv;."  --add-data "data_yellow.csv;."   --icon=resources/icon.ico -w

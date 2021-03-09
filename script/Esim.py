@@ -4,12 +4,16 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from PyQt5 import uic
 import time
+import serial
 
 import impro as impro
 import sender as sender
 import encryption
 import resources
 import constant
+
+import serial.tools.list_ports
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -118,6 +122,14 @@ class MainWindow(QMainWindow):
 
         self.initSlide()
 
+        ports = serial.tools.list_ports.comports()
+        for port, desc, hwid in sorted(ports):
+            self.ui.comboBox_port.addItem(port)
+
+        self.ui.lineEdit_baudrate.setText("9600")
+        self.ser = serial.Serial()
+        
+
     def rotate(self):
         self.rotate_value = (self.rotate_value + 90) % 360
         if self.rotate_value == 0:
@@ -198,7 +210,7 @@ class MainWindow(QMainWindow):
         self.isSetting = not self.isSetting
 
     def initslidevalue(self, index, value):
-        self.slider[index].setValue(value)
+        self.slider[index].setValue(int(value))
         self.slider_text[index].setText(str(value))
         
     def sliderChange(self, index):
@@ -211,8 +223,7 @@ class MainWindow(QMainWindow):
             mode_send = 3
         else:
             mode_send = 2
-
-        if self.ui.radioButton_putih.isChecked() : 
+        if self.ui.radioButton_putih.isChecked() :
             color_send = 1
         else:
             color_send = 2
@@ -223,19 +234,35 @@ class MainWindow(QMainWindow):
         config =  self.get_config()   
         code = self.ui.lineEdit_code_send.text()
         msg = encryption.encode(code, self.ui.textEdit_msg_send.toPlainText())
-        print(msg)
         # url = "http://192.168.4.1/text?="+msg #AFIS 1.0
-        url = "http://192.168.4.1/text?2"+str(config["mode"])+str(config["color"])+msg
-        self.senderHttp = sender.SendHttp(parent=self, url=url)
-        self.senderHttp.respon.connect(self.getRespon)
-        self.senderHttp.start()
+        
+        # url = "http://192.168.4.1/text?2"+str(config["mode"])+str(config["color"])+msg
+        # self.senderHttp = sender.SendHttp(parent=self, url=url)
+        # self.senderHttp.respon.connect(self.getRespon)
+        # self.senderHttp.start()
+        # self.ui.pushButton_send.setEnabled(False)
+
+        baudrate = int(self.ui.lineEdit_baudrate.text())
+        port = self.ui.comboBox_port.currentText()
+
+        self.senderSerial= sender.SendSerial(parent=self, port=port, baudrate=baudrate, msg=msg)
+        self.senderSerial.respon.connect(self.getRespon)
+        self.senderSerial.start()
         self.ui.pushButton_send.setEnabled(False)
+
 
     def testLampu(self):
         url = "http://192.168.4.1/text?1"
-        self.senderHttp = sender.SendHttp(parent=self, url=url)
-        self.senderHttp.respon.connect(self.getRespon)
-        self.senderHttp.start()
+        # self.senderHttp = sender.SendHttp(parent=self, url=url)
+        # self.senderHttp.respon.connect(self.getRespon)
+        # self.senderHttp.start()
+
+        baudrate = int(self.ui.lineEdit_baudrate.text())
+        port = self.ui.comboBox_port.currentText()
+
+        self.senderSerial= sender.SendSerial(parent=self, port=port, baudrate=baudrate, msg="test")
+        self.senderSerial.respon.connect(self.getRespon)
+        self.senderSerial.start()
 
     @pyqtSlot(str)
     def getRespon(self, respon):
@@ -369,6 +396,6 @@ if __name__ == "__main__":
     app.setWindowIcon(QIcon(':/icons/icon.ico'))
     app.setStyleSheet('MainWindow {background-image: url(:/icons/background.PNG); }')
     Dialog = MainWindow()
-    Dialog.setWindowTitle("ESIM 1.0 (Elektronik Sinyal Isyarat Morse)")
+    Dialog.setWindowTitle("ESIM 1.1 (Elektronik Sinyal Isyarat Morse)")
     Dialog.showMaximized()
     sys.exit(app.exec_())
