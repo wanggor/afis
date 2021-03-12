@@ -50,7 +50,14 @@ def check_available_camera():
 class Camera_stream(QThread):
     changePixmap = pyqtSignal(QImage)
     data = pyqtSignal(dict)
-    def __init__(self, cap = None, parent = None, const = {}, angle = 0):
+    dataDurasiSignal = pyqtSignal(dict)
+    def __init__(self, 
+            cap = None, 
+            parent = None, 
+            const = {}, 
+            treshold = 150,
+            minSize = 0,
+            angle = 0):
         super(Camera_stream, self).__init__(parent)
 
         fourcc = cv2.VideoWriter_fourcc('M','J','P','G')
@@ -61,13 +68,13 @@ class Camera_stream(QThread):
         # self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         self.stop = False
         self.const = const
+        self.treshold = treshold
 
-        self.morse = Morse(self.const)
+        self.morse = Morse(self.treshold)
         self.msg = Msg(self.const)
-        self.tracker = tracker.CentroidTracker(maxDisappeared=500, maxDistance=50)
-        self.mode = "Tunggal"
         self.isSetting = False
         self.isReading = False
+        self.minSize = minSize
         self.angle = angle
 
 
@@ -75,44 +82,51 @@ class Camera_stream(QThread):
         self.quit()
         self.wait()
 
-    def change_mode(self, val):
-        self.tracker = tracker.CentroidTracker(maxDisappeared=30, maxDistance=50)
-        self.mode = val
-
     def changeSetting(self, val):
         self.isSetting = val
 
-    def updateConst(self, const):
+    def updateConst(self, const, treshold, minSize):
         self.const = const
-        self.morse.updateConst(const)
+        self.treshold = treshold
+        self.minSize = minSize
+        self.morse.updateConst(treshold)
 
     def changeReading(self, val):
         self.isReading = val
-        self.tracker = tracker.CentroidTracker(maxDisappeared=30, maxDistance=50)
         self.msg = Msg(self.const)
         return self.isReading
 
     def run(self):
         while  not self.stop :
             ret, frame = self.cap.read()
+            minValue = 0.1
             if ret:
                 frame = rotate_bound(frame, self.angle)
                 frame_bin = self.morse.rgb2bin(frame)
-                data = self.tracker.update([])
-                bbox = self.morse.getContour(frame_bin)
+                
+                percentage = (np.sum(frame_bin)/ 255) / frame_bin.size
+                
+                if percentage > (self.minSize / 100):
+                    value = 1
+                else :
+                    value = 0
 
-                data = self.tracker.update(bbox)
-
-                dataMorse = self.msg.parsingData(frame_bin, data)
+                dataDurasi , dataMorse = self.msg.parsingData(value)
                 
                 if self.isSetting:
                     frame = cv2.cvtColor(frame_bin,cv2.COLOR_GRAY2RGB)
 
-                self.morse.drawRect(frame, data)
-
 
                 frame = imutils.resize(frame, width=640 , height=480 )
                 rgbImage = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    
+                if self.isSetting:
+                    wb = 4
+                    if value:
+                        rgbImage= cv2.copyMakeBorder(rgbImage,wb,wb,wb,wb,cv2.BORDER_CONSTANT,value=[0, 0,255])
+                    else :
+                        rgbImage= cv2.copyMakeBorder(rgbImage,wb,wb,wb,wb,cv2.BORDER_CONSTANT,value=[255,0,0])
+                    self.dataDurasiSignal.emit(dataDurasi)
                 
                 convertToQtFormat = QImage(rgbImage.data, rgbImage.shape[1], rgbImage.shape[0], QImage.Format_RGB888)
                 p = convertToQtFormat.scaled(rgbImage.shape[1], rgbImage.shape[0], Qt.KeepAspectRatio)
@@ -127,36 +141,23 @@ class Camera_stream(QThread):
         self.cap.release()
 
 class Morse():
-    def __init__(self, const):
-        self.const = const
-        self.blurr_core = constant.shape_config["blurr_core"]
-        self.kernelSize = self.const['kernel']
-        self.kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(self.kernelSize,self.kernelSize))
-        self.minSize = self.const['min']
-        self.maxSize = self.const['max']
-        self.shapeTolarance = constant.shape_config["shapeTolarance"]
-
+    def __init__(self, treshold):
+        self.treshold = treshold
         dataObj = {}
 
-    def updateConst(self, const):
-        self.const = const
-        self.blurr_core = constant.shape_config["blurr_core"]
-        self.kernelSize = self.const['kernel']
-        self.kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(self.kernelSize,self.kernelSize))
-        self.minSize = self.const['min']
-        self.maxSize = self.const['max']
-        self.shapeTolarance = constant.shape_config["shapeTolarance"]
+    def updateConst(self, treshold):
+        self.treshold = treshold
 
     def rgb2bin(self, image):
-        low  = np.array([self.const["H"], self.const["S"], self.const["V"]])
-        high = np.array([self.const["Hmax"], self.const["Smax"], self.const["Vmax"]])   
+        low  = np.array([30, 0, 150])
+        high = np.array([90,255, 255])   
         hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
         thresh = cv2.inRange(hsv, low, high)
+
+
         # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # gray = cv2.GaussianBlur(gray, (self.kernelSize+self.blurr_core, self.kernelSize+self.blurr_core), 0)
-        # ret,thresh = cv2.threshold(gray,self.thresholdValue,255,cv2.THRESH_BINARY)
-        thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, self.kernel)
+        # ret,thresh = cv2.threshold(gray,self.treshold,255,cv2.THRESH_BINARY)
         return thresh
 
     def getContour(self,thresh):
@@ -199,16 +200,20 @@ class Morse():
 
 class Msg():
     def __init__(self, config):
-       
-        self.zero_tick  = constant.mode_detection[config["tempo"]]["zero-tick"]
-        self.one_tick   = constant.mode_detection[config["tempo"]]["one-tick"]
-        self.split_tick = constant.mode_detection[config["tempo"]]["space-tick"]
-        self.tolerance = constant.mode_detection[config["tempo"]]["tolerance"]
+        self.zero_tick  =config["zero-tick"]
+        self.one_tick   = config["one-tick"]
+        self.split_tick = config["space-tick"]
+        self.tolerance = config["tolerance"]
 
         self.data = {}
         self.lastTime = {}
         self.value = {}
         self.duration = {}
+
+        self.data_durasi = {
+            "zero" : [0,0,0,0,0,0,0,0,0,0],
+            "one" : [0,0,0,0,0,0,0,0,0,0],
+        }
 
         self.mors_code = {
             "01":"A",
@@ -263,13 +268,15 @@ class Msg():
         if value != self.value[index]:
 
             if self.value[index] == 1:
-                print("one value", self.duration[index])
+                self.data_durasi["one"].pop(0)
+                self.data_durasi["one"].append( float("{:.2f}".format( self.duration[index])) )
                 if self.duration[index] > (self.one_tick - self.tolerance) and  self.duration[index] < (self.one_tick + self.tolerance) :
                     self.data[index][-1][-1] += "1"
                 elif self.duration[index] > (self.zero_tick - self.tolerance) and  self.duration[index] < (self.zero_tick + self.tolerance):
                     self.data[index][-1][-1] += "0"
             else:
-                print("zero-value", self.duration[index])
+                self.data_durasi["zero"].pop(0)
+                self.data_durasi["zero"].append(float("{:.2f}".format( self.duration[index])) )
                 if self.duration[index] > self.split_tick:
                     if len(self.data[index][-1]) > 0:
                         if self.data[index][-1][-1] in self.mors_code.keys():
@@ -294,18 +301,9 @@ class Msg():
                     self.data[index][-1] = [""]
                 self.data[index].append([""])
 
-    def parsingData(self, thres, data):
-        for n, item in enumerate(data.values()):
-            cx,cy,w,h = int(item[0]),int(item[1]),int(item[2]),int(item[3])
-            x1, y1, x2, y2 = (cx - w//2), (cy - h//2), (cx + w//2), (cy + h//2)
-            roi = h * w
-            area = np.sum(thres[y1:y2, x1:x2]) / 255
-            rasio = area/roi
-            if rasio > 0.1 :
-                self.update(n, 1)
-            else:
-                self.update(n, 0)
-        return self.data.copy()
+    def parsingData(self, value):
+        self.update(0, value)
+        return self.data_durasi.copy(), self.data.copy()
 
 
 

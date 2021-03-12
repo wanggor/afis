@@ -8,26 +8,25 @@
 
 mode_detection = {
     1 : {
-        "zero-tick" : 0.2,
-        "one-tick" : 0.7,
-        "space-tick" : 0.3,
-        "split-tick" : 0.3,
-        "tolerance" : 0.15
+        "zero-tick" : 0.4,
+        "one-tick" : 1,
+        "space-tick" : 1.3,
+        "split-tick" : 1.3,
+        "tolerance" : 0.3
     },
-
     2 : {
-       "zero-tick" : 0.1,
-        "one-tick" : 0.3,
-        "space-tick" : 0.15,
-        "split-tick" : 0.15,
-        "tolerance" : 0.08
+       "zero-tick" : 0.3,
+        "one-tick" : 0.6,
+        "space-tick" : 1,
+        "split-tick" : 1,
+        "tolerance" : 0.1
     },
     3 : {
-        "zero-tick" : 0.02,
-        "one-tick" : 0.15,
-        "space-tick" : 0.05,
-        "split-tick" : 0.05,
-        "tolerance" : 0.05
+        "zero-tick" : 0.2,
+        "one-tick" : 0.4,
+        "space-tick" : 0.9,
+        "split-tick" : 0.9,
+        "tolerance" : 0.1
     }
 }
 
